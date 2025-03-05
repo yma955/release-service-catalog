@@ -21,6 +21,10 @@ spec:
               #!/usr/bin/env sh
               set -eux
 
+              cat > "$(workspaces.data.path)"/release.json << EOF
+              {}
+              EOF
+
               cat > "$(workspaces.data.path)/data.json" << EOF
               {
                 "releaseNotes": {
@@ -31,7 +35,11 @@ spec:
                   "charonConfig":"charon-config",
                   "awsSecret": "charon-aws-credentials",
                   "environment": "dev",
-                  "release": "ga"
+                  "release": "ga",
+                  "signing": {
+                    "signCASecret": "radas-sa-secret",
+                    "signKey": "testkey"
+                  }
                 }
               }
               EOF
@@ -55,6 +63,8 @@ spec:
           value: data.json
         - name: snapshotPath
           value: snapshot.json
+        - name: releasePath
+          value: release.json
       workspaces:
         - name: data
           workspace: tests-workspace
@@ -71,19 +81,24 @@ spec:
           value: $(tasks.run-task.results.charonConfigFilePath)
         - name: charonAWSSecret
           value: $(tasks.run-task.results.charonAWSSecret)
+        - name: charonSignCASecret
+          value: $(tasks.run-task.results.charonSignCASecret)
       taskSpec:
         params:
           - name: mrrcParamFilePath
           - name: charonConfigFilePath
           - name: charonAWSSecret
+          - name: charonSignCASecret
         steps:
           - name: check-result
             image: quay.io/konflux-ci/release-service-utils:e633d51cd41d73e4b3310face21bb980af7a662f
             script: |
-              #!/usr/bin/env sh
+              #!/usr/bin/env bash
               set -eux
 
               test "$(params.charonAWSSecret)" == "charon-aws-credentials"
+
+              test "$(params.charonSignCASecret)" == "radas-sa-secret"
 
               MRRC_FILE="$(workspaces.data.path)/$(params.mrrcParamFilePath)"
               test -f "$MRRC_FILE"
@@ -93,6 +108,7 @@ spec:
               test "$MRRC_TARGET" == "dev-maven-ga"
               test "$MRRC_PRODUCT_NAME" == "test"
               test "$MRRC_PRODUCT_VERSION" == "0.0.1"
+              test "$MRRC_SIGN_KEY" == "testkey"
 
               CHARON_CFG_FILE="$(workspaces.data.path)/$(params.charonConfigFilePath)"
               test -f "$CHARON_CFG_FILE"

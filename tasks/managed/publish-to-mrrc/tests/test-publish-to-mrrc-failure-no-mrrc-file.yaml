@@ -38,6 +38,8 @@ spec:
           value: "charon-config.yaml"
         - name: charonAWSSecret
           value: test-charon-aws-credentials
+        - name: charonSignCASecret
+          value: test-ca
       workspaces:
         - name: data
           workspace: tests-workspace

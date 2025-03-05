@@ -42,6 +42,8 @@ spec:
           value: data.json
         - name: snapshotPath
           value: "snapshot_spec.json"
+        - name: releasePath
+          value: release.json
       workspaces:
         - name: data
           workspace: tests-workspace

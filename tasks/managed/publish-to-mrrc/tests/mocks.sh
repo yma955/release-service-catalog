@@ -5,7 +5,7 @@ set -eux
 
 function oras(){
   echo Mock oras called with: $*
-  echo $* >> $(workspaces.data.path)/mock_oras.txt
+  echo $* >> "$(workspaces.data.path)"/mock_oras.txt
 
   if [[ "$*" == "pull --registry-config"* ]]
   then
@@ -25,16 +25,26 @@ function charon(){
   echo Mock charon called with: $*
   echo $* >> $(workspaces.data.path)/mock_charon.txt
 
-  if [ ! test -f "$HOME/.charon/charon.yaml" ]
+  if [ ! -f "$HOME/.charon/charon.yaml" ]
   then
     echo Error: Missing charon config file
     exit 1
   fi
 
-  if [[ "$*" != "upload -p "*" -v "*" -t "*" "*"" ]]
+  if [[ "$*" != "sign -r "*" -p "*" -k "*" "*"" ]] && [[ "$*" != "upload -p "*" -v "*" -t "*" "*"" ]]
   then
     echo Error: Unexpected call
     exit 1
+  fi
+
+  # will use testcert as a symbol for ca mounted test
+  if [[ "$*" == "sign -r "*" -p "*" -k \"testcert\" "*"" ]]
+  then
+    if [[ $(cat /etc/ssl/certs/ca-custom-bundle.crt) != "mycert" ]]
+    then
+      echo Custom certificate not mounted
+      return 1
+    fi
   fi
 }
 

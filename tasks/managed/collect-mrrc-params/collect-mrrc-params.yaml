@@ -14,6 +14,9 @@ spec:
     - name: snapshotPath
       description: Path to the JSON string of the Snapshot spec in the data workspace
       type: string
+    - name: releasePath
+      type: string
+      description: Path to the release data JSON file
   results:
     - name: mrrcParamFilePath
       description: path of the env file for other tasks to consume
@@ -21,6 +24,8 @@ spec:
       description: path of the charon config file for other tasks to consume
     - name: charonAWSSecret
       description: the secret name for charon aws credential file
+    - name: charonSignCASecret
+      description: the secret name for ca files for radas signing
   steps:
     - name: collect-mrrc-params
       image: quay.io/konflux-ci/release-service-utils:28fca729e118024bd0f1bd8db4f2651a130ef152
@@ -50,12 +55,22 @@ spec:
         echo "export MRRC_PRODUCT_NAME=$productName" >> "$MRRC_ENV_FILE_PATH"
         echo "export MRRC_PRODUCT_VERSION=$productVersion" >> "$MRRC_ENV_FILE_PATH"
 
+        sign_key="$(jq -re '.mrrc.signing.signKey' "$DATA_FILE")"
+        echo "export MRRC_SIGN_KEY=$sign_key" >> "$MRRC_ENV_FILE_PATH"
+
         SNAPSHOT_PATH="$WORK_DIR/$(params.snapshotPath)"
         zipRegistries="$(jq -re '[.components[].containerImage] | join("%")' "$SNAPSHOT_PATH")"
         echo "export MRRC_ZIP_REGISTRY=$zipRegistries" >> "$MRRC_ENV_FILE_PATH"
 
         awsSecret="$(jq -re '.mrrc.awsSecret' $DATA_FILE)"
         echo -n "$awsSecret" > "$(results.charonAWSSecret.path)"
+
+        sign_ca_secret="$(jq -re '.mrrc.signing.signCASecret' "$DATA_FILE")"
+        echo -n "$sign_ca_secret" > "$(results.charonSignCASecret.path)"
+
+        AUTHOR=$(jq -r '.status.attribution.author' "$WORK_DIR/$(params.releasePath)")
+        if [[ ${AUTHOR} == "" ]] ; then exit 1 ; fi
+        echo "export MRRC_AUTHOR=$AUTHOR" >> "$MRRC_ENV_FILE_PATH"
 
         echo -n "$MRRC_ENV_FILE_PATH" > "$(results.mrrcParamFilePath.path)"
 

@@ -8,6 +8,14 @@ metadata:
     tekton.dev/tags: release
 spec:
   params:
+    - name: caTrustConfigMapName
+      type: string
+      description: The name of the ConfigMap to read CA bundle data from.
+      default: trusted-ca
+    - name: caTrustConfigMapKey
+      type: string
+      description: The name of the key in the ConfigMap that contains the CA bundle data.
+      default: ca-bundle.crt
     - name: mrrcParamFilePath
       description: path of the env file for mrrc parameters to use
       type: string
@@ -16,6 +24,9 @@ spec:
       type: string
     - name: charonAWSSecret
       description: the secret name for charon aws credential file
+      type: string
+    - name: charonSignCASecret
+      description: the secret name for ca files for radas signing
       type: string
   steps:
     - name: prepare-repo
@@ -42,14 +53,18 @@ spec:
           echo "Downloading the maven repo zip $r"
           SOURCE_REPO=${r%%@sha256:*}
           AUTH_FILE=$(mktemp)
+          hash=${r##*@sha256:}
+          short_hash=${hash:0:6}
+          repodir="/workdir/mrrc/$short_hash"
+          mkdir -p "$repodir"
           select-oci-auth "${SOURCE_REPO}" > "$AUTH_FILE"
-          oras pull --registry-config "$AUTH_FILE" "$r" -o /workdir/mrrc
+          oras pull --registry-config "$AUTH_FILE" "$r" -o "$repodir"
         done
       volumeMounts:
         - name: workdir
           mountPath: "/workdir"
     - name: upload-maven-repo
-      image: quay.io/konflux-ci/charon@sha256:95b22f4f0fc1d6bb984a2f63334c3f66a539e433d79cde4eafa7731d8924377f
+      image: quay.io/konflux-ci/charon@sha256:0d0e4a02e8c54fcc54bc359e960e0610c184f452d74b85bd8b2e95064ba1a119
       computeResources:
         limits:
           memory: 512Mi
@@ -72,23 +87,52 @@ spec:
         productName=$MRRC_PRODUCT_NAME
         productVersion=$MRRC_PRODUCT_VERSION
 
-        work_dir="/workdir/mrrc"
         # Disable shell check sc2012 as find command is not installed
         # shellcheck disable=SC2012
-        for r in $(ls "$work_dir"/*.zip | cat)
+        IFS='%' read -ra ADDR <<< "$MRRC_ZIP_REGISTRY"
+        for r in "${ADDR[@]}"
         do
           echo "Release $r with $productName-$productVersion into $target"
-          charon upload -p "$productName" -v "$productVersion" -t "$target" "$r"
+          hash=${r##*@sha256:}
+          short_hash=${hash:0:6}
+          repodir="/workdir/mrrc/$short_hash"
+
+          # start signing of the maven artifacts in maven zip
+          #export PN_TRACE_DRV=1 # enable qpid-proton frame level tracing
+          charon sign -r "$MRRC_AUTHOR" -p "$repodir" -k "$MRRC_SIGN_KEY" "$r"
+
+          # shellcheck disable=SC2012
+          r=$(ls "$repodir"/*.zip | cat)
+          # shellcheck disable=SC2012
+          s=$(ls "$repodir"/*.json | cat)
+          echo "Release $r with $productName-$productVersion into $target"
+          charon upload -p "$productName" -v "$productVersion" -t "$target" -l "$s" "$r"
         done
       volumeMounts:
         - name: "charon-aws-vol"
           mountPath: "/home/charon/.aws"
+        - name: "charon-signca-vol"
+          mountPath: "/home/charon/radasca"
+        - name: trusted-ca
+          mountPath: /etc/ssl/certs/ca-custom-bundle.crt
+          subPath: ca-bundle.crt
+          readOnly: true
         - name: workdir
           mountPath: "/workdir"
   volumes:
     - name: "charon-aws-vol"
       secret:
         secretName: "$(params.charonAWSSecret)"
+    - name: "charon-signca-vol"
+      secret:
+        secretName: "$(params.charonSignCASecret)"
+    - name: trusted-ca
+      configMap:
+        name: $(params.caTrustConfigMapName)
+        items:
+          - key: $(params.caTrustConfigMapKey)
+            path: ca-bundle.crt
+        optional: true
     - name: workdir
       emptyDir: {}
   workspaces:

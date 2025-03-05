@@ -184,6 +184,8 @@ spec:
           value: "$(tasks.collect-data.results.data)"
         - name: snapshotPath
           value: "$(tasks.collect-data.results.snapshotSpec)"
+        - name: releasePath
+          value: "$(tasks.collect-data.results.release)"
       workspaces:
         - name: data
           workspace: release-workspace
@@ -206,6 +208,8 @@ spec:
           value: "$(tasks.collect-mrrc-params.results.charonConfigFilePath)"
         - name: charonAWSSecret
           value: "$(tasks.collect-mrrc-params.results.charonAWSSecret)"
+        - name: charonSignCASecret
+          value: "$(tasks.collect-mrrc-params.results.charonSignCASecret)"
       workspaces:
         - name: data
           workspace: release-workspace

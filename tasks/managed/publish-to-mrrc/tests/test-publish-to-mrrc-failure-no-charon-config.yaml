@@ -30,6 +30,8 @@ spec:
               export MRRC_TARGET=dev-maven-ga
               export MRRC_PRODUCT_NAME=test-prod
               export MRRC_PRODUCT_VERSION=0.0.1
+              export MRRC_SIGN_KEY=testkey
+              export MRRC_AUTHOR=testuser
               EOF
     - name: run-task
       taskRef:
@@ -41,6 +43,8 @@ spec:
           value: "charon-config.yaml"
         - name: charonAWSSecret
           value: test-charon-aws-credentials
+        - name: charonSignCASecret
+          value: test-ca
       workspaces:
         - name: data
           workspace: tests-workspace
