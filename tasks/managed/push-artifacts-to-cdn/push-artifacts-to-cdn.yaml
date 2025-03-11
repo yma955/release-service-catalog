@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: push-artifacts-to-cdn
   labels:
-    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/version: "0.1.0"
   annotations:
     tekton.dev/pipelines.minVersion: "0.12.1"
     tekton.dev/tags: release
@@ -38,6 +38,9 @@ spec:
       type: string
       default: "86400"
       description: Request timeout
+    - name: author
+      type: string
+      description: "Name of the user that requested the signing, for auditing purposes"
   workspaces:
     - name: data
       description: Workspace where the json files are stored
@@ -137,6 +140,7 @@ spec:
           -p cgwSecret="${cgwSecret}" \
           -p taskGitUrl="$(params.taskGitUrl)" \
           -p taskGitRevision="$(params.taskGitRevision)" \
+          -p author="$(params.author)" \
           -l ${TASK_LABEL}="${TASK_ID}" \
           -l ${PIPELINERUN_LABEL}="$(params.pipelineRunUid)" \
           -t "$(params.requestTimeout)" \
