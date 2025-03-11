@@ -46,7 +46,7 @@ spec:
       description: Workspace where the json files are stored
   steps:
     - name: run-script
-      image: quay.io/konflux-ci/release-service-utils:7835e32b1974f956a6c942e24adbc79705cab12e
+      image: quay.io/konflux-ci/release-service-utils:2d6f05c89fc619042a2be19d64ff48de9975397a
       script: |
         #!/usr/bin/env bash
         set -ex
@@ -130,7 +130,7 @@ spec:
 
         echo "Creating ${requestType} to push artifacts..."
 
-        ${requestType} -r "${REQUEST}" \
+        ${requestType} --pipeline "${REQUEST}" \
           -p snapshot_json="${snapshot}" \
           -p exodusGwSecret="${exodusGwSecret}" \
           -p exodusGwEnv="${exodusGwEnv}" \
