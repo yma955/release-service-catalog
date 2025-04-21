@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: create-pyxis-image
   labels:
-    app.kubernetes.io/version: "4.0.0"
+    app.kubernetes.io/version: "5.0.0"
   annotations:
     tekton.dev/pipelines.minVersion: "0.12.1"
     tekton.dev/tags: release
@@ -188,8 +188,9 @@ spec:
 
         AUTH_FILE=$(mktemp)
 
-        # Default to false
-        skipLayers="$(jq -r ".pyxis.skipLayers // false" "${DATA_FILE}")"
+        # Default to true
+        EXPRESSION='.pyxis | (if has("skipLayers") and .skipLayers == false then .skipLayers else true end)'
+        skipLayers="$(jq -r "${EXPRESSION}" "${DATA_FILE}")"
 
         COMPONENTS=$(jq '.components | length' "${SNAPSHOT_SPEC_FILE}")
         JSON_OUTPUT='{}'

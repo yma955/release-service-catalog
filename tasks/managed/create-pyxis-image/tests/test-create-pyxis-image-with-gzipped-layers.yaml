@@ -80,6 +80,9 @@ spec:
 
               cat > "$(params.dataDir)/$(context.pipelineRun.uid)/mydata.json" << EOF
               {
+                "pyxis": {
+                  "skipLayers": false
+                }
               }
               EOF
           - name: skip-trusted-artifact-operations
