@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: create-advisory
   labels:
-    app.kubernetes.io/version: "6.1.2"
+    app.kubernetes.io/version: "6.2.0"
   annotations:
     tekton.dev/pipelines.minVersion: "0.12.1"
     tekton.dev/tags: release
@@ -189,12 +189,16 @@ spec:
         # detect which one to use based on repositories specified
         #
         pending_repositories=$(jq -r '.components[] | select(.repository |
-          contains("quay.io/redhat-pending/")) |
+          test("quay.io/redhat-pending/|quay.io/rh-flatpaks-stage/")) |
           .repository' "$(params.dataDir)/$(params.snapshotPath)")
-        prod_repositories=$(jq -r '.components[] | select(.repository | contains("quay.io/redhat-prod/")) |
+        prod_repositories=$(jq -r '.components[] | select(.repository |
+          test("quay.io/redhat-prod/|quay.io/rh-flatpaks-prod/")) |
           .repository' "$(params.dataDir)/$(params.snapshotPath)")
-        orphan_repositories=$(jq -r '.components[] | select(.repository | contains("quay.io/redhat-prod/") |
-          not) | select(.repository | contains("quay.io/redhat-pending/") | not) |
+        orphan_repositories=$(jq -r '.components[] |
+          select(.repository |
+            test("quay.io/redhat-prod/|quay.io/rh-flatpaks-prod/") | not) |
+          select(.repository |
+            test("quay.io/redhat-pending/|quay.io/rh-flatpaks-stage/") | not) |
           .repository' "$(params.dataDir)/$(params.snapshotPath)")
 
         foundPendingRepositories=false

@@ -4,7 +4,7 @@ kind: Task
 metadata:
   name: publish-pyxis-repository
   labels:
-    app.kubernetes.io/version: "4.0.0"
+    app.kubernetes.io/version: "4.1.0"
   annotations:
     tekton.dev/pipelines.minVersion: "0.12.1"
     tekton.dev/tags: release
@@ -251,10 +251,10 @@ spec:
                 -X PATCH -H 'Content-Type: application/json' --data-binary "${PAYLOAD}"
 
             # Determine the correct CATALOG_BASE_URL based on the repository prefix
-            if [[ "$REPOSITORY" == quay.io/redhat-prod/* ]]
+            if [[ "$REPOSITORY" == quay.io/redhat-prod/* || "$REPOSITORY" == quay.io/rh-flatpaks-prod/* ]]
             then
               CATALOG_BASE_URL="https://catalog.redhat.com/software/containers"
-            elif [[ "$REPOSITORY" == quay.io/redhat-pending/* ]]
+            elif [[ "$REPOSITORY" == quay.io/redhat-pending/* || "$REPOSITORY" == quay.io/rh-flatpaks-stage/* ]]
             then
               CATALOG_BASE_URL="https://catalog.stage.redhat.com/software/containers"
             else

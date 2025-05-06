@@ -26,6 +26,9 @@ Only all `redhat-pending` or all `redhat-prod` repositories may be specified in 
 | taskGitUrl               | The url to the git repo where the release-service-catalog tasks and stepactions to be used are stored                      | No        | ""                      |
 | taskGitRevision          | The revision in the taskGitUrl repo to be used                                                                             | No        | ""                      |
 
+## Changes in 6.2.0
+* Support for new flatpak registries
+
 ## Changes in 6.1.2
 * Improve logging of `internal-request`
   * Previously we would just swallow the output and if it failed for any reason, the log wouldn't have anything useful
@@ -40,7 +43,7 @@ Only all `redhat-pending` or all `redhat-prod` repositories may be specified in 
     Errata Tool API.
   * If `.releaseNotes.allow_custom_live_id` is not set or `false` and `.releaseNotes.live_id` is set,
     we will exit with an error.
-
+ 
 ## Changes in 6.0.0
 * This task now supports Trusted artifacts
 
