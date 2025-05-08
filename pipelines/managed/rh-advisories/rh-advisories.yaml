@@ -486,6 +486,8 @@ spec:
           value: "$(params.taskGitUrl)"
         - name: taskGitRevision
           value: "$(params.taskGitRevision)"
+        - name: retries
+          value: 3
       workspaces:
         - name: data
           workspace: release-workspace
