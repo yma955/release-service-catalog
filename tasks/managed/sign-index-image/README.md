@@ -30,6 +30,9 @@ data:
         pipelineImage: <image pullspec>
         configMapName: <configmap name>
 ```
+## Changes in 5.0.1
+* Fix typo when reading manifest digests to sign: manifestDigests -> manifest_digests
+  * As a result, nothing got signed, because the script always thought there was nothing to sign
 
 ## Changes in 4.4.0
 * Added compute resource limits
