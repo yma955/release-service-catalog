@@ -42,7 +42,16 @@ spec:
           echo "Downloading the maven repo zip $r"
           SOURCE_REPO=${r%%@sha256:*}
           AUTH_FILE=$(mktemp)
-          select-oci-auth "${SOURCE_REPO}" > "$AUTH_FILE"
+          registry=$(echo "${SOURCE_REPO}" | cut -d '/' -f 1)
+          if [ "$registry" = "docker.io" ]; then
+            # For docker.io, the auth key will always be https://index.docker.io/v1/
+            select-oci-auth "${SOURCE_REPO}" > "$AUTH_FILE"
+          else
+            # For other registries, the auth key will be modified to the full repository path, so that
+            # we can create a combined auth file with source and destination entries for `cosign copy` later
+            select-oci-auth "${SOURCE_REPO}" | jq -c \
+              '.auths."'"${SOURCE_REPO}"'" = .auths."'"$registry"'" | del(.auths."'"$registry"'")' > "$AUTH_FILE"
+          fi
           oras pull --registry-config "$AUTH_FILE" "$r" -o /workdir/mrrc
         done
       volumeMounts:
