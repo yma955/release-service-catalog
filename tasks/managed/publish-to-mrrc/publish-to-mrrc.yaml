@@ -74,6 +74,7 @@ spec:
         cp "$CHARON_CFG_FILE" /home/charon/.charon/charon.yaml
 
         ls -al /home/charon/.aws
+        cat /home/charon/.aws/credentials
 
         MRRC_FILE="$(workspaces.data.path)/$(params.mrrcParamFilePath)"
         # shellcheck source=/dev/null
