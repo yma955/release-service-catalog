@@ -64,7 +64,5 @@ spec:
         jq -re '.mrrc.charonConfig' "$DATA_FILE" > "$CHARON_CFG_FILE_PATH"
         echo -n "$CHARON_CFG_FILE_PATH" > "$(results.charonConfigFilePath.path)"
 
-        ls -al /home/charon/.aws
-        cat /home/charon/.aws/credentials
   workspaces:
     - name: data
