@@ -56,7 +56,7 @@ spec:
 
         awsSecret="$(jq -re '.mrrc.awsSecret' $DATA_FILE)"
         echo -n "$awsSecret" > "$(results.charonAWSSecret.path)"
-        cat "$(results.charonAWSSecret.path)"
+        cat /tekton/results/charonAWSSecret
 
         echo -n "$MRRC_ENV_FILE_PATH" > "$(results.mrrcParamFilePath.path)"
 
