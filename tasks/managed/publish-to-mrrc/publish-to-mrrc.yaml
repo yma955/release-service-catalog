@@ -73,6 +73,8 @@ spec:
         mkdir -p "/home/charon/.charon"
         cp "$CHARON_CFG_FILE" /home/charon/.charon/charon.yaml
 
+        ls -al /home/charon/.aws
+
         MRRC_FILE="$(workspaces.data.path)/$(params.mrrcParamFilePath)"
         # shellcheck source=/dev/null
         . "$MRRC_FILE"
