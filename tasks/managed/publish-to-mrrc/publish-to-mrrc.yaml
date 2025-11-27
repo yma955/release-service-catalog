@@ -40,6 +40,7 @@ spec:
     - name: IMAGE
       description: Reference to the OCI-Artifact that merge step will generate.
       type: string
+      default: "quay.io/yma/merge-release-test:1.0.0"
     - name: ociArtifactExpiresAfter
       description: Expiration date for the trusted artifacts created in the
         OCI repository. An empty string means the artifacts do not expire
@@ -172,10 +173,10 @@ spec:
       image: quay.io/konflux-ci/charon@sha256:0d0e4a02e8c54fcc54bc359e960e0610c184f452d74b85bd8b2e95064ba1a119
       computeResources:
         limits:
-          memory: 4Gi
+          memory: 1Gi
         requests:
-          memory: 2Gi
-          cpu: 1
+          memory: 1Gi
+          cpu: 500m
       script: |
         #!/usr/bin/env bash
         set -eux
