@@ -196,9 +196,15 @@ spec:
         IFS='%' read -ra ADDR <<< "$MRRC_ZIP_REGISTRY"
         mergedir="/workdir/mrrc/merged"
         mkdir -p "$mergedir"
-        charon merge -p "$productName" -v "$productVersion" -m "${mergedir}/merged.zip" "${ADDR[@]}"
 
-        # Check if the merged zip is available, if so push it to the registry
+        # Check if have more than one archive to merge
+        if [ ${#ADDR[@]} -gt 1 ]; then
+          charon merge -p "$productName" -v "$productVersion" -m "${mergedir}/merged.zip" "${ADDR[@]}"
+        else
+          echo "Skip merging: no more than one archive found, no merge needed"
+        fi
+
+        # Check if the merged zip is available, if so push it to the registry, or skip pushing
         if [ -f "${mergedir}/merged.zip" ]; then
           select-oci-auth "$IMAGE" >auth.json
           [ -n "$IMAGE_EXPIRES_AFTER" ] && EXPIRE_LABEL=("--annotation" "quay.expires-after=$IMAGE_EXPIRES_AFTER")
