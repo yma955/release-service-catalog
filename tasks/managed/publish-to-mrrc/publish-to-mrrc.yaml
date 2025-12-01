@@ -38,7 +38,7 @@ spec:
       type: string
       default: "empty"
     - name: IMAGE
-      description: Reference to the OCI-Artifact that merge step will generate.
+      description: Reference to the OCI-Artifact that merge step will generate
       type: string
       default: "quay.io/yma/merge-release-test:1.0.0"
     - name: ociArtifactExpiresAfter
