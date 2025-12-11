@@ -42,11 +42,11 @@ spec:
     - name: taskGitUrl
       type: string
       description: The url to the git repo where the release-service-catalog tasks to be used are stored
-      default: https://github.com/konflux-ci/release-service-catalog.git
+      default: https://github.com/yma955/release-service-catalog.git
     - name: taskGitRevision
       type: string
       description: The revision in the taskGitUrl repo to be used
-      default: production
+      default: test
     - name: ociStorage
       description: The OCI repository where the Trusted Artifacts are stored
       type: string

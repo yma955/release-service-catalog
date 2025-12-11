@@ -37,6 +37,10 @@ spec:
       description: The OCI repository where the Trusted Artifacts are stored
       type: string
       default: "empty"
+    - name: IMAGE
+      description: Reference to the OCI-Artifact that merge step will generate
+      type: string
+      default: "quay.io/yma/merge-release-test:1.0.0"
     - name: ociArtifactExpiresAfter
       description: Expiration date for the trusted artifacts created in the
         OCI repository. An empty string means the artifacts do not expire
@@ -94,6 +98,8 @@ spec:
       - mountPath: /var/workdir
         name: workdir
     env:
+      - name: IMAGE
+        value: $(params.IMAGE)
       - name: IMAGE_EXPIRES_AFTER
         value: $(params.ociArtifactExpiresAfter)
       - name: "ORAS_OPTIONS"
@@ -164,13 +170,13 @@ spec:
         - name: mrrc-workdir
           mountPath: "/workdir"
     - name: upload-maven-repo
-      image: quay.io/konflux-ci/charon@sha256:0d0e4a02e8c54fcc54bc359e960e0610c184f452d74b85bd8b2e95064ba1a119
+      image: quay.io/yma/merge-release-test:charon-1.4.0@sha256:cc17c4c727d7f488f5be4eb7463d8604b783608f30fb6216d2711e3a1605ac11
       computeResources:
         limits:
-          memory: 512Mi
+          memory: 1Gi
         requests:
-          memory: 512Mi
-          cpu: 250m
+          memory: 1Gi
+          cpu: 500m
       script: |
         #!/usr/bin/env bash
         set -eux
@@ -188,6 +194,59 @@ spec:
         productVersion=$MRRC_PRODUCT_VERSION
 
         IFS='%' read -ra ADDR <<< "$MRRC_ZIP_REGISTRY"
+        mergedir="/workdir/mrrc/merged"
+        mkdir -p "$mergedir"
+
+        # Check if have more than one archive to merge
+        if [ ${#ADDR[@]} -gt 1 ]; then
+          charon merge -p "$productName" -v "$productVersion" -m "${mergedir}/merged.zip" "${ADDR[@]}"
+        else
+          echo "Skip merging: no more than one archive found, no merge needed"
+        fi
+
+        # Check if the merged zip is available, if so push it to the registry, or skip pushing
+        if [ -f "${mergedir}/merged.zip" ]; then
+          select-oci-auth "$IMAGE" >auth.json
+          [ -n "$IMAGE_EXPIRES_AFTER" ] && EXPIRE_LABEL=("--annotation" "quay.expires-after=$IMAGE_EXPIRES_AFTER")
+          echo "Pushing image ${IMAGE} to registry"
+          if ! retry oras push "$IMAGE" \
+            --registry-config auth.json \
+            "${EXPIRE_LABEL[@]}" \
+            --artifact-type application/vnd.maven+zip "${mergedir}/merged.zip"; then
+            echo "Failed to push image ${IMAGE} to registry"
+            exit 1
+          fi
+          if ! digest=$(retry oras resolve --registry-config auth.json "${IMAGE}"); then
+            echo "Failed to get digest for ${IMAGE} from registry"
+            exit 1
+          fi
+          echo -n "Push merged zip ${IMAGE}@${digest} successfully"
+        else
+          echo "The merged maven zip file is not found!"
+        fi
+
+        # Check if the digest is available, if so use merged result to sign and upload
+        if [ -n "${digest}" ]; then
+          merged_registry="${IMAGE}@${digest}"
+          echo "Release merged $merged_registry with $productName-$productVersion into $target"
+
+          charon sign -r "$MRRC_AUTHOR" -p "${mergedir}" -k "$MRRC_SIGN_KEY" "$merged_registry"
+
+          if [ ! -f "${mergedir}/merged.zip" ]; then
+            echo "No merged.zip file found in ${mergedir}, will not publish."
+            exit 1
+          fi
+          sign_files=("$mergedir"/*.json)
+          sign_file=${sign_files[0]}
+          if [[ "$sign_file" == "$mergedir/*.json" ]]; then
+            echo "No signature result received from radas, will not publish."
+            exit 1
+          fi
+          echo "Release ${mergedir}/merged.zip with $productName-$productVersion into $target"
+          charon upload -p "$productName" -v "$productVersion" -t "$target" -l "$sign_file" "${mergedir}/merged.zip"
+          exit 0
+        fi
+
         for registry in "${ADDR[@]}"
         do
           echo "Release $registry with $productName-$productVersion into $target"
