@@ -50,7 +50,7 @@ spec:
     - name: ociStorage
       description: The OCI repository where the Trusted Artifacts are stored
       type: string
-      default: "quay.io/konflux-ci/release-service-trusted-artifacts"
+      default: "quay.io/yma/merge-release-test:trusted-artifacts-1.0.0"
     - name: orasOptions
       description: oras options to pass to Trusted Artifacts calls
       type: string
