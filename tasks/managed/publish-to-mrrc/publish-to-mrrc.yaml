@@ -199,7 +199,21 @@ spec:
 
         # Check if have more than one archive to merge
         if [ ${#ADDR[@]} -gt 1 ]; then
-          charon merge -p "$productName" -v "$productVersion" -m "${mergedir}/merged.zip" "${ADDR[@]}"
+          for registry in "${ADDR[@]}"
+          do
+            hash=${registry##*@sha256:}
+            short_hash=${hash:0:6}
+            repodir="/workdir/mrrc/$short_hash"
+            repo_zips=("$repodir"/*.zip)
+            repo_zip=${repo_zips[0]}
+            if [[ "$repo_zip" == "$repodir/*.zip" ]]
+            then
+              echo "No maven repository zip file found, will not publish."
+              exit 1
+            fi
+            repodir_arr+=("$repo_zip")
+          done
+          charon merge -p "$productName" -v "$productVersion" -m "${mergedir}/merged.zip" "${repodir_arr[@]}"
         else
           echo "Skip merging: no more than one archive found, no merge needed"
         fi
