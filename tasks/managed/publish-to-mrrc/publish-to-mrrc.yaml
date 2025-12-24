@@ -40,7 +40,7 @@ spec:
     - name: IMAGE
       description: Reference to the OCI-Artifact that merge step will generate
       type: string
-      default: "quay.io/yma/merge-release-test:1.0.0"
+      default: "quay.io/yma/merge-release-test"
     - name: ociArtifactExpiresAfter
       description: Expiration date for the trusted artifacts created in the
         OCI repository. An empty string means the artifacts do not expire
@@ -75,8 +75,10 @@ spec:
     - name: sourceDataArtifact
       type: string
       description: Produced trusted data artifact
+    - name: IMAGE_TAG
+      description: Tag of the OCI-Artifact that merge step will build
     - name: IMAGE_DIGEST
-      description: Digest of the OCI-Artifact that merge step just built
+      description: Digest of the OCI-Artifact that merge step will build
   volumes:
     - name: "charon-aws-vol"
       secret:
@@ -314,19 +316,21 @@ spec:
           [ -n "$IMAGE_EXPIRES_AFTER" ] && EXPIRE_LABEL=("--annotation" "quay.expires-after=$IMAGE_EXPIRES_AFTER")
           echo "Pushing image ${IMAGE} to registry"
 
-          if ! oras push "$IMAGE" \
+          RESULTING_TAG=$(date +%Y%m%d-%H%M%S)-$(uuidgen)
+          if ! oras push "$IMAGE:$RESULTING_TAG" \
             --registry-config auth.json \
             "${EXPIRE_LABEL[@]}" \
             --artifact-type application/vnd.maven+zip "merged.zip"; then
-            echo "Failed to push image ${IMAGE} to registry"
+            echo "Failed to push image ${IMAGE}:${RESULTING_TAG} to registry"
             exit 1
           fi
-          if ! RESULTING_DIGEST=$(oras resolve --registry-config auth.json "${IMAGE}"); then
-            echo "Failed to get digest for ${IMAGE} from registry"
+          if ! RESULTING_DIGEST=$(oras resolve --registry-config auth.json "${IMAGE}:${RESULTING_TAG}"); then
+            echo "Failed to get digest for ${IMAGE}:${RESULTING_TAG} from registry"
             exit 1
           fi
           echo -n "$RESULTING_DIGEST" | tee "$(results.IMAGE_DIGEST.path)"
-          echo -n "Push merged zip ${IMAGE}@${RESULTING_DIGEST} successfully"
+          echo -n "$RESULTING_TAG" | tee "$(results.IMAGE_TAG.path)"
+          echo -n "Push merged zip ${IMAGE}:${RESULTING_TAG}@${RESULTING_DIGEST} successfully"
         else
           echo "The merged maven zip file is not found!"
         fi
@@ -369,7 +373,8 @@ spec:
         # Check if the digest is available, if so use merged result to sign and upload
         if [ -f "$(results.IMAGE_DIGEST.path)" ]; then
           IMAGE_DIGEST="$(cat "$(results.IMAGE_DIGEST.path)")"
-          merged_registry="${IMAGE}@${IMAGE_DIGEST}"
+          IMAGE_TAG="$(cat "$(results.IMAGE_TAG.path)")"
+          merged_registry="${IMAGE}:${IMAGE_TAG}@${IMAGE_DIGEST}"
           echo "Release merged $merged_registry with $productName-$productVersion into $target"
 
           charon sign -r "$MRRC_AUTHOR" -p "${mergedir}" -k "$MRRC_SIGN_KEY" "$merged_registry"
