@@ -193,15 +193,13 @@ spec:
         # shellcheck source=/dev/null
         . "$MRRC_FILE"
 
-        target=$MRRC_TARGET
-        productName=$MRRC_PRODUCT_NAME
-        productVersion=$MRRC_PRODUCT_VERSION
-
         IFS='%' read -ra ADDR <<< "$MRRC_ZIP_REGISTRY"
-
         if [ ${#ADDR[@]} -eq 1 ]; then
           echo "Only single archive found, no need to merge"
 
+          target=$MRRC_TARGET
+          productName=$MRRC_PRODUCT_NAME
+          productVersion=$MRRC_PRODUCT_VERSION
           registry="${ADDR[0]}"
           echo "Release $registry with $productName-$productVersion into $target"
           hash=${registry##*@sha256:}
@@ -215,14 +213,14 @@ spec:
           repo_zip=${repo_zips[0]}
           if [[ "$repo_zip" == "$repodir/*.zip" ]]
           then
-            echo "No maven repository zip file found, will not publish."
+            echo "No maven repository zip file found, will not publish"
             exit 1
           fi
           sign_files=("$repodir"/*.json)
           sign_file=${sign_files[0]}
           if [[ "$sign_file" == "$repodir/*.json" ]]
           then
-            echo "No signature result received from radas, will not publish."
+            echo "No signature result received from radas, will not publish"
             exit 1
           fi
           echo "Release $repo_zip with $productName-$productVersion into $target"
@@ -259,15 +257,16 @@ spec:
         # shellcheck source=/dev/null
         . "$MRRC_FILE"
 
-        productName=$MRRC_PRODUCT_NAME
-        productVersion=$MRRC_PRODUCT_VERSION
-
         IFS='%' read -ra ADDR <<< "$MRRC_ZIP_REGISTRY"
-        mergedir="/workdir/mrrc/merged"
-        mkdir -p "$mergedir"
-
         # Check if have more than one archive to merge
         if [ ${#ADDR[@]} -gt 1 ]; then
+          echo "More than one archives found, will merge"
+
+          productName=$MRRC_PRODUCT_NAME
+          productVersion=$MRRC_PRODUCT_VERSION
+          mergedir="/workdir/mrrc/merged"
+          mkdir -p "$mergedir"
+
           for registry in "${ADDR[@]}"
           do
             hash=${registry##*@sha256:}
@@ -277,7 +276,7 @@ spec:
             repo_zip=${repo_zips[0]}
             if [[ "$repo_zip" == "$repodir/*.zip" ]]
             then
-              echo "No maven repository zip file found, will not merge."
+              echo "No maven repository zip file found, will not merge"
               exit 1
             fi
             repodir_arr+=("$repo_zip")
@@ -289,12 +288,6 @@ spec:
           mountPath: "/home/charon/.aws"
         - name: mrrc-workdir
           mountPath: "/workdir"
-        - name: "charon-signca-vol"
-          mountPath: "/home/charon/radasca"
-        - name: trusted-ca
-          mountPath: /etc/ssl/certs/ca-custom-bundle.crt
-          subPath: ca-bundle.crt
-          readOnly: true
     - name: push-merged-maven-repo-to-registry
       image: quay.io/konflux-ci/release-service-utils:02a8ddcd16113371a255fd1ef0a196399d300162
       computeResources:
@@ -308,7 +301,6 @@ spec:
         set -eux
 
         mergedir="/workdir/mrrc/merged"
-
         # Check if the merged zip is available, if so push it to the registry, or skip pushing
         if [ -f "${mergedir}/merged.zip" ]; then
           cp "${mergedir}/merged.zip" "./merged.zip"
@@ -335,16 +327,8 @@ spec:
           echo "The merged maven zip file is not found!"
         fi
       volumeMounts:
-        - name: "charon-aws-vol"
-          mountPath: "/home/charon/.aws"
         - name: mrrc-workdir
           mountPath: "/workdir"
-        - name: "charon-signca-vol"
-          mountPath: "/home/charon/radasca"
-        - name: trusted-ca
-          mountPath: /etc/ssl/certs/ca-custom-bundle.crt
-          subPath: ca-bundle.crt
-          readOnly: true
     - name: upload-merged-maven-repo
       image: quay.io/yma/charon@sha256:26bace5f1b0741ff8d942583a48bbcbac70c0f551c1000205a3f28ed585b587b
       computeResources:
@@ -357,21 +341,21 @@ spec:
         #!/usr/bin/env bash
         set -eux
 
-        CHARON_CFG_FILE="$(params.dataDir)/$(params.charonConfigFilePath)"
-        mkdir -p "/home/charon/.charon"
-        cp "$CHARON_CFG_FILE" /home/charon/.charon/charon.yaml
-
-        MRRC_FILE="$(params.dataDir)/$(params.mrrcParamFilePath)"
-        # shellcheck source=/dev/null
-        . "$MRRC_FILE"
-
-        target=$MRRC_TARGET
-        productName=$MRRC_PRODUCT_NAME
-        productVersion=$MRRC_PRODUCT_VERSION
-        mergedir="/workdir/mrrc/merged"
-
-        # Check if the digest is available, if so use merged result to sign and upload
+        # Check if the digest is available, if so use the merged result to sign and upload
         if [ -f "$(results.IMAGE_DIGEST.path)" ]; then
+          CHARON_CFG_FILE="$(params.dataDir)/$(params.charonConfigFilePath)"
+          mkdir -p "/home/charon/.charon"
+          cp "$CHARON_CFG_FILE" /home/charon/.charon/charon.yaml
+
+          MRRC_FILE="$(params.dataDir)/$(params.mrrcParamFilePath)"
+          # shellcheck source=/dev/null
+          . "$MRRC_FILE"
+
+          target=$MRRC_TARGET
+          productName=$MRRC_PRODUCT_NAME
+          productVersion=$MRRC_PRODUCT_VERSION
+          mergedir="/workdir/mrrc/merged"
+
           IMAGE_DIGEST="$(cat "$(results.IMAGE_DIGEST.path)")"
           IMAGE_TAG="$(cat "$(results.IMAGE_TAG.path)")"
           merged_registry="${IMAGE}:${IMAGE_TAG}@${IMAGE_DIGEST}"
@@ -380,13 +364,13 @@ spec:
           charon sign -r "$MRRC_AUTHOR" -p "${mergedir}" -k "$MRRC_SIGN_KEY" "$merged_registry"
 
           if [ ! -f "${mergedir}/merged.zip" ]; then
-            echo "No merged.zip file found in ${mergedir}, will not publish."
+            echo "No merged.zip file found in ${mergedir}, will not publish"
             exit 1
           fi
           sign_files=("$mergedir"/*.json)
           sign_file=${sign_files[0]}
           if [[ "$sign_file" == "$mergedir/*.json" ]]; then
-            echo "No signature result received from radas, will not publish."
+            echo "No signature result received from radas, will not publish"
             exit 1
           fi
           echo "Release ${mergedir}/merged.zip with $productName-$productVersion into $target"
