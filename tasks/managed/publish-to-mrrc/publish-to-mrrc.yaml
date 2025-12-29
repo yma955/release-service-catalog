@@ -174,7 +174,7 @@ spec:
         - name: mrrc-workdir
           mountPath: "/workdir"
     - name: upload-single-maven-repo
-      image: quay.io/yma/charon@sha256:26bace5f1b0741ff8d942583a48bbcbac70c0f551c1000205a3f28ed585b587b
+      image: quay.io/yma/charon@sha256:007ab11a49aacd5d84d5fc7e27f37b47c724126de86dcd04332058da4ba42b64
       computeResources:
         limits:
           memory: 512Mi
@@ -238,7 +238,7 @@ spec:
           subPath: ca-bundle.crt
           readOnly: true
     - name: merge-multiple-maven-repos
-      image: quay.io/yma/charon@sha256:26bace5f1b0741ff8d942583a48bbcbac70c0f551c1000205a3f28ed585b587b
+      image: quay.io/yma/charon@sha256:007ab11a49aacd5d84d5fc7e27f37b47c724126de86dcd04332058da4ba42b64
       computeResources:
         limits:
           memory: 1Gi
@@ -330,7 +330,7 @@ spec:
         - name: mrrc-workdir
           mountPath: "/workdir"
     - name: upload-merged-maven-repo
-      image: quay.io/yma/charon@sha256:26bace5f1b0741ff8d942583a48bbcbac70c0f551c1000205a3f28ed585b587b
+      image: quay.io/yma/charon@sha256:007ab11a49aacd5d84d5fc7e27f37b47c724126de86dcd04332058da4ba42b64
       computeResources:
         limits:
           memory: 1Gi
